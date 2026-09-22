@@ -41,20 +41,13 @@ pub fn default_margin() -> crate::config::layout::Margin {
 
 #[inline]
 pub fn default_shell() -> crate::config::Shell {
-    #[cfg(not(target_os = "windows"))]
-    {
-        crate::config::Shell {
-            program: None,
-            args: vec![String::from("--login")],
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        crate::config::Shell {
-            program: Some(String::from("powershell")),
-            args: vec![],
-        }
+    // This is gitby's Rio: it hosts the gitby TUI, not a login shell. `gitby`
+    // is resolved on PATH by default; gitby's own launcher passes an explicit
+    // path (and a config) when it spawns this, so PATH is only the fallback for
+    // a standalone launch.
+    crate::config::Shell {
+        program: Some(String::from("gitby")),
+        args: vec![],
     }
 }
 

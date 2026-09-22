@@ -1,0 +1,61 @@
+name: Gitby Windows
+
+# gitby's Rio fork, built for Windows and published as a single moving release
+# ("gitby-windows") that the gitby TUI downloads when a person opts into the
+# in-terminal browser. This is a plain cargo build (the repo's other release
+# pipeline needs goreleaser-pro); it also bundles the modern ConPTY so the
+# kitty graphics escapes survive the pseudoconsole.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gitby-windows
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build the gitby Rio (rio.exe)
+        run: cargo build --release -p rioterm
+
+      - name: Bundle the modern ConPTY (MIT, redistributable)
+        shell: pwsh
+        run: |
+          $ver = '1.24.260710001'
+          $url = "https://api.nuget.org/v3-flatcontainer/microsoft.windows.console.conpty/$ver/microsoft.windows.console.conpty.$ver.nupkg"
+          Invoke-WebRequest -Uri $url -OutFile conpty.nupkg
+          Expand-Archive -Path conpty.nupkg -DestinationPath conpty -Force
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item target\release\rio.exe dist\
+          Copy-Item conpty\runtimes\win-x64\native\conpty.dll dist\
+          Copy-Item conpty\build\native\runtimes\x64\OpenConsole.exe dist\
+          Get-ChildItem dist
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path dist\* -DestinationPath gitby-rio-windows-x64.zip -Force
+
+      - name: Publish the moving gitby-windows release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'gitby-windows'
+          gh release delete $tag --yes --cleanup-tag 2>$null
+          gh release create $tag gitby-rio-windows-x64.zip `
+            --target $env:GITHUB_SHA `
+            --title "Gitby Rio (Windows)" `
+            --notes "gitby's Rio fork for Windows: hosts the gitby TUI, renders the kitty graphics protocol, and ships the modern ConPTY. Built from $env:GITHUB_SHA. Not a general-purpose terminal."
