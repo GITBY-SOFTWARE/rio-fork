@@ -290,9 +290,10 @@ mod tests {
         navigation: Navigation,
     }
 
-    /// The default is platform-split: macOS hides the strip for a lone
-    /// tab, Linux/Windows keep it as a centred title with no island
-    /// behind it.
+    /// With `mode = 'Tab'` the strip is platform-split: macOS hides it for
+    /// a lone tab, Linux/Windows keep it as a centred title with no island
+    /// behind it. gitby's Rio defaults to Plain, though, so the default
+    /// shows no strip at all, on any platform.
     #[test]
     fn hide_if_single_platform_default() {
         let decoded = toml::from_str::<Root>("[navigation]\nmode = 'Tab'\n").unwrap();
@@ -301,10 +302,8 @@ mod tests {
             decoded.navigation.island_visible(1),
             !cfg!(target_os = "macos")
         );
-        assert_eq!(
-            Navigation::default().island_visible(1),
-            !cfg!(target_os = "macos")
-        );
+        // gitby's Rio defaults to Plain: no navigation strip on any platform.
+        assert!(!Navigation::default().island_visible(1));
         // More than one tab always shows the strip.
         assert!(decoded.navigation.island_visible(2));
     }
