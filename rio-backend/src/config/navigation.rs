@@ -54,14 +54,10 @@ pub enum NavigationMode {
 #[allow(clippy::derivable_impls)]
 impl Default for NavigationMode {
     fn default() -> NavigationMode {
-        #[cfg(target_os = "macos")]
-        {
-            // Use Tab for full GPU rendering
-            NavigationMode::Tab
-        }
-
-        #[cfg(not(target_os = "macos"))]
-        NavigationMode::Tab
+        // gitby's Rio hosts a single app (the gitby TUI), so there is no tab
+        // bar to show - Plain keeps the whole surface for gitby instead of a
+        // one-tab strip pushing its content down.
+        NavigationMode::Plain
     }
 }
 
